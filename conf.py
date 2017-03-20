@@ -30,9 +30,29 @@ import json
 
 def jsn_save():
 	global jsn
+	if verbose:print("BDT - Saving json file")
+	print(jsn)
 	json_path = os.path.join(os.path.dirname(__file__),"tip_cache.json")
-	with open(json_path, 'w') as outfile:
-			json.dumps(jsn, outfile, indent=4)
+
+	if jsn == None or jsn == {}:
+		jsn_clear()
+
+	outf = open(json_path,'w')
+	data_out = json.dumps(jsn,indent=4)
+	outf.write(data_out)
+	outf.close()
+
+	#with open(json_path, 'w') as outfile:
+	#		json.dumps(jsn, outfile, indent=4)
+
+
+def jsn_clear():
+	global jsn
+	jsn = {
+		"checked_tip":"",
+		"last_check":"",
+		"subscribed_check_cache":""
+	}
 
 
 def register():
@@ -47,6 +67,10 @@ def register():
 	global failsafe
 	failsafe = not dev
 
+	# ensure auto-check for tip happens at most once per blender session
+	global auto_once
+	auto_once = False
+
 	global async_progress
 	# None: no request in progress
 	# False: Halt the ongoing thread immediately (if possible)
@@ -57,11 +81,7 @@ def register():
 	# for persistant local data storage
 	# initialize json structure, for reference
 	global jsn
-	jsn = {
-		"checked_tip":"",
-		"last_check":"",
-		"subscribed_check_cache":{}
-	}
+	jsn_clear()
 
 	# if json is found, load the file
 	json_path = os.path.join(os.path.dirname(__file__),"tip_cache.json")
@@ -72,6 +92,27 @@ def register():
 	else:
 		with open(json_path) as data_file:
 			jsn = json.load(data_file)
+
+	# url for project database access
+	global db_url
+	db_url = "blender-daily-tips.firebaseio.com"
+
+	global error
+	error = () # format: ({"info"},"")
+
+	# icon usage
+
+	global use_icons
+	try: # We only need to check this once here, so it can now be removed from e.g. UI etc.
+		import bpy.utils.previews
+		use_icons = True
+	except:
+		use_icons = False
+
+	global preview_collections
+	preview_collections = {}
+	global thumb_ids # necessary, if name-based?
+	thumb_ids = {}
 
 
 
