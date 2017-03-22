@@ -216,12 +216,13 @@ def fetch_yanal_sosak():
 					print("BDT - skipped thumb {x} download, already local".format(
 						x=yt_vid))
 
-		# limit description length:
-		if len(desc)>500:
+		# limit description length to some reasonable number of characters
+		if len(desc)>2000:
 			desc = desc[:497]+"..."
 
 		ret = {"title":title,"description":desc,"date":date,
-				"thumb":tmb_path,"url":vid_url}
+				"thumb":tmb_path,"url":vid_url,
+				"website":"https://www.youtube.com/playlist?list=PLvPwLecDlWRCaTVFs7Tx_1Mz8EDd0S8_5"}
 		return ret,None
 
 

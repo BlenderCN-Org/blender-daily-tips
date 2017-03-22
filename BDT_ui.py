@@ -25,9 +25,13 @@
 # IMPORTS
 # -----------------------------------------------------------------------------
 
+# blender
 import bpy
 
-# updater ops import, all setup in this file
+# system
+import textwrap
+
+# local
 from . import conf
 from . import BDT_updater_ops
 from . import BDT_requests
@@ -61,8 +65,8 @@ class BDT_show_tips(bpy.types.Operator):
 	{'REGISTER','UNDO'}
 
 	def invoke(self, context, event):
-		# No OK button, will auto-execute code
-		return context.window_manager.invoke_popup(self)
+		width = 400 * bpy.context.user_preferences.system.pixel_size
+		return context.window_manager.invoke_popup(self,width=width)
 
 	def draw(self, context):
 		layout = self.layout
@@ -77,8 +81,9 @@ class BDT_show_tips(bpy.types.Operator):
 
 		tipCol = layout.column()
 
-		if addon_prefs.tips_blendernation==True:
-			box = tipCol.box()
+		
+		if addon_prefs.tips_internaldb==True:
+			box = tipCol.row()
 			# tip should come from:
 			# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
 			tip = {"title":"TEST",
@@ -88,13 +93,29 @@ class BDT_show_tips(bpy.types.Operator):
 					"date":"(No date provided)"
 					}
 			draw_tip(box,tip,style=0,wrap=80)
+			tipCol.separator()
+
+		if addon_prefs.tips_blendernation==True:
+			box = tipCol.row()
+			# tip should come from:
+			# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
+			tip = {"title":"TEST",
+					"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
+					"url":"http://theduckcow.com",
+					"img_id":None,
+					"date":"(No date provided)"
+					}
+			draw_tip(box,tip,style=0,wrap=80)
+			tipCol.separator()
+
 		
 		if addon_prefs.tips_yanal_sosak==True:
-			box = tipCol.box()
+			box = tipCol.row()
 			# tip should come from:
 			if "yanal_sosak" in conf.jsn["subscribed_check_cache"]:
 				tip = conf.jsn["subscribed_check_cache"]["yanal_sosak"]
-				draw_tip(box,tip,style=0,wrap=80)
+				draw_tip(box,tip,style=0,wrap=80,title_icon="OUTLINER_DATA_CAMERA")
+			tipCol.separator()
 
 		## COL1
 		# icon left gallery view of tips
@@ -147,37 +168,53 @@ class BDT_clear_tipcache(bpy.types.Operator):
 # -----------------------------------------------------------------------------
 
 
-def draw_tip(draw_element,tip,style=0,wrap=80):
+def draw_tip(draw_element,tip,style=0,wrap=100,lines=9,title_icon=None):
 	# different layouts for tips to procedurally draw
-	
+	# draw_element: passed in layout var for which everything here is a child
+	# tip: the raw, self-contained tip information
+	# wrap: length of word wrapping (description only)
+	# lines: max number of layout rows/lines, including title/action buttons
 	
 	if style==0:
 		#TEXT ONLY TIP
 		row = draw_element.row()
-		row.label(tip["title"])
+		# LINES: 1x
+		if title_icon==None:
+			row.label(tip["title"]) 
+		else:
+			row.label(tip["title"],icon=title_icon)
+
 		row = draw_element.row()
 		col = draw_element.column()
-		gen_rows = len(tip["description"])
-		s=0
-		e=wrap
-		if gen_rows<e:e=gen_rows
+		col.scale_y = 0.8
 
-		while gen_rows>0:
-			if s>=len(tip["description"]):
-				break
-			if e>=len(tip["description"]):
-				e=-1
-				gen_rows=-1
-			# find location of last space/return/tab/etc and adjust e to match
-			if ' ' in tip["description"][s:e]:
-				e = tip["description"][s:e].rfind(' ')+s
-			col.label(tip["description"][s:e])
-			s+=wrap
-			e+=wrap
-			gen_rows-=wrap
-		row = draw_element.row()
-		row.operator("wm.url_open","View tip online").url=tip["url"]
+		# convert text to friendlier view
+		re_encode = str(tip["description"].encode('utf-8').decode('ascii', 'ignore'))
+
+		# new wordwrapping method, and then split by line
+		label_lines = textwrap.fill(re_encode, wrap)
+		label_lines = label_lines.split("\n")
+
+		truncate = ""
+		if len(label_lines)>lines-3:
+			label_lines = label_lines[:lines-3]
+			truncate = "--- description truncated ---"
+
+		for ln in label_lines:
+			col.label(ln) # LINESS: N-3x
+		if truncate != "":
+			suncol =col.row()
+			suncol.alignment = 'CENTER'
+			label_lines.append(truncate)
+
+		row = draw_element.row(align=True) # LINES: 1x
+		row.operator("wm.url_open","View this tip online").url=tip["url"]
+		row.operator("wm.url_open","View source website").url=tip["website"]
 	else:
+		# other styles:
+		# Left-side image (gallery view) + 
+		# tag redraw?
+		# https://www.blender.org/forum/viewtopic.php?t=21706
 		return
 
 
@@ -217,6 +254,22 @@ def bdt_draw_preferences(self, context):
 	tipCol = layout.column()
 	wrap = 100
 
+	
+
+	box = tipCol.box()
+	box.prop(self,"tips_internaldb","Enable Blendernation tips feed")
+	if self.tips_internaldb==True:
+		# tip should come from:
+		# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
+		tip = {"title":"TEST",
+				"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
+				"url":"http://theduckcow.com",
+				"img_id":None,
+				"date":"(No date provided)",
+				"website":"http://blendernation.com"
+				}
+		draw_tip(box,tip,style=0,wrap=wrap)
+
 	box = tipCol.box()
 	box.prop(self,"tips_blendernation","Enable Blendernation tips feed")
 	if self.tips_blendernation==True:
@@ -226,7 +279,8 @@ def bdt_draw_preferences(self, context):
 				"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
 				"url":"http://theduckcow.com",
 				"img_id":None,
-				"date":"(No date provided)"
+				"date":"(No date provided)",
+				"website":"http://blendernation.com"
 				}
 		draw_tip(box,tip,style=0,wrap=wrap)
 	
@@ -303,6 +357,12 @@ class BDT_preferences(bpy.types.AddonPreferences):
 
 	
 	# tip subscription sources
+
+	tips_internaldb = bpy.props.BoolProperty(
+		name = "Daily Tips Database (internal)",
+		description = "Get the latest daily tip generated by the community",
+		default = False,
+		)
 
 	tips_blendernation = bpy.props.BoolProperty(
 		name = "Blendernation Tutorial",

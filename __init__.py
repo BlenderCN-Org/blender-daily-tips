@@ -26,7 +26,7 @@ bl_info = {
 	"name":        "Daily Tips 'n Tricks",
 	"description": "Addon for getting daily tips in blender",
 	"author":      "Patrick W. Crawford",
-	"version":     (0, 0, 1),
+	"version":     (0, 0, 2),
 	"blender":     (2, 7, 8),
 	"location":    "Popup in 3D view, or Help > Daily Tips",
 	"warning":     "In Development",  
