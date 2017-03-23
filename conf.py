@@ -54,6 +54,14 @@ def jsn_clear():
 		"subscribed_check_cache":""
 	}
 
+def latest():
+	if jsn == None or jsn == {}:
+		jsn_clear()
+	if jsn["last_check"] == "":
+		return "None"
+	else:
+		return str(jsn["last_check"])
+
 
 def register():
 

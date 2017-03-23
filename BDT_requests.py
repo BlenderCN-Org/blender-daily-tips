@@ -58,22 +58,24 @@ def bdt_fetch_tips():
 	# {"title":title,"description":desc,"date":date,"thumb":tmb_path,"url":url}
 
 	# consider doing threads even for each of these linear-requests
-	if addon_prefs.tips_blendernation==True:
+	if addon_prefs.tips_database==True:
 		# also wrap in a try/catch
 		# also if none in the DB, get direct from source where possible
 		# (and the update the DB)
 
-		res,e = fetch_blendernation()
+		res,e = fetch_database()
 		if res!=None:
 			tips.append(res)
 			if conf.jsn["subscribed_check_cache"]=="":
 				conf.jsn["subscribed_check_cache"] = {}
-			conf.jsn["subscribed_check_cache"]["blendernation"] = res
+			conf.jsn["subscribed_check_cache"]["database"] = res
 		else:
-			conf.jsn["subscribed_check_cache"]["blendernation"] = None
+			if conf.jsn["subscribed_check_cache"]=="":
+				conf.jsn["subscribed_check_cache"] = {}
+			conf.jsn["subscribed_check_cache"]["database"] = None
 		if e!=None:
 			# some kind of error occured
-			print("BDT - Error on fetching blendernation: ",str(e))
+			print("BDT - Error on fetching database: ",str(e))
 
 	
 	if addon_prefs.tips_yanal_sosak==True:
@@ -85,7 +87,10 @@ def bdt_fetch_tips():
 				conf.jsn["subscribed_check_cache"] = {}
 			conf.jsn["subscribed_check_cache"]["yanal_sosak"] = res
 		else:
+			if conf.jsn["subscribed_check_cache"]=="":
+				conf.jsn["subscribed_check_cache"] = {}
 			conf.jsn["subscribed_check_cache"]["yanal_sosak"] = None
+			print("No tips found from Yanal")
 		if e!=None:
 			# some kind of error occured
 			print("BDT - Error on fetching Yanal Sosak: ",str(e))
@@ -104,6 +109,9 @@ def bdt_fetch_tips():
 	print("Finished gathering tips: ")
 	print(tips)
 
+	# update the conf jsn values
+	conf.jsn["last_check"] = str(datetime.now()).split(".")[0]
+
 	if len(tips) == 0:
 		conf.error = ({"ERROR"},"No available tips found, see console for more info")
 
@@ -112,9 +120,9 @@ def bdt_fetch_tips():
 
 
 
-def fetch_blendernation():
+def fetch_database():
 	# source to parse:
-	# https://www.blendernation.com/category/education/
+	# www.TheDuckCow.com
 	return None,"Not implemented yet"
 
 

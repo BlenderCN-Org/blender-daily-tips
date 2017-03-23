@@ -70,7 +70,7 @@ class BDT_show_tips(bpy.types.Operator):
 
 	def draw(self, context):
 		layout = self.layout
-		layout.label("Most recent tips as of <DATE>")
+		layout.label("Most recent tips as of "+conf.latest())
 		addon_prefs = bpy.context.user_preferences.addons[__package__].preferences
 
 		if conf.error != ():
@@ -82,40 +82,34 @@ class BDT_show_tips(bpy.types.Operator):
 		tipCol = layout.column()
 
 		
-		if addon_prefs.tips_internaldb==True:
-			box = tipCol.row()
+		if addon_prefs.tips_database==True:
+			box = tipCol #tipCol.row()
 			# tip should come from:
-			# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
-			tip = {"title":"TEST",
-					"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
-					"url":"http://theduckcow.com",
-					"img_id":None,
-					"date":"(No date provided)"
-					}
-			draw_tip(box,tip,style=0,wrap=80)
-			tipCol.separator()
-
-		if addon_prefs.tips_blendernation==True:
-			box = tipCol.row()
-			# tip should come from:
-			# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
-			tip = {"title":"TEST",
-					"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
-					"url":"http://theduckcow.com",
-					"img_id":None,
-					"date":"(No date provided)"
-					}
-			draw_tip(box,tip,style=0,wrap=80)
-			tipCol.separator()
-
+			# tip = conf.jsn["subscribed_check_cache"]["database"][-1]
+			# tip = {"title":"TEST",
+			# 		"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
+			# 		"url":"http://theduckcow.com",
+			# 		"img_id":None,
+			# 		"date":"(No date provided)"
+			# 		}
+			# draw_tip(box,tip,style=0,wrap=80,lines=5)
+			box.label("DAILY TIP DATABASE",icon="INFO")
+			box.label("Feature not yet available")
+			line = box.box()
+			line.label("")
+			line.scale_y = 0.02
 		
 		if addon_prefs.tips_yanal_sosak==True:
-			box = tipCol.row()
-			# tip should come from:
+			box = tipCol #tipCol.row()
 			if "yanal_sosak" in conf.jsn["subscribed_check_cache"]:
 				tip = conf.jsn["subscribed_check_cache"]["yanal_sosak"]
-				draw_tip(box,tip,style=0,wrap=80,title_icon="OUTLINER_DATA_CAMERA")
-			tipCol.separator()
+				draw_tip(box,tip,style=0,wrap=60,lines=6,title_icon="OUTLINER_DATA_CAMERA")
+				
+			else:
+				box.label("Did not find latest tip from Yanal Sosak")
+			line = box.box()
+			line.label("")
+			line.scale_y = 0.02
 
 		## COL1
 		# icon left gallery view of tips
@@ -159,6 +153,7 @@ class BDT_clear_tipcache(bpy.types.Operator):
 
 		conf.jsn_clear()
 		conf.jsn_save()
+		context.area.tag_redraw()
 
 		return {"FINISHED"}
 
@@ -166,6 +161,10 @@ class BDT_clear_tipcache(bpy.types.Operator):
 # -----------------------------------------------------------------------------
 # PANELS AND POPUPS
 # -----------------------------------------------------------------------------
+
+# for callbacks e.g. from enum or value changes in popups
+def redraw(self, context):
+	context.area.tag_redraw()
 
 
 def draw_tip(draw_element,tip,style=0,wrap=100,lines=9,title_icon=None):
@@ -186,7 +185,7 @@ def draw_tip(draw_element,tip,style=0,wrap=100,lines=9,title_icon=None):
 
 		row = draw_element.row()
 		col = draw_element.column()
-		col.scale_y = 0.8
+		col.scale_y = 0.7
 
 		# convert text to friendlier view
 		re_encode = str(tip["description"].encode('utf-8').decode('ascii', 'ignore'))
@@ -223,27 +222,32 @@ def bdt_draw_preferences(self, context):
 
 	layout = self.layout
 	toprow = layout.row()
-	split = toprow.split(percentage=0.3)
+	split = toprow.split(percentage=0.35)
 
 	topcol = split.column()
 	box = topcol.box()
 	box.label("Tip Frequency")
 	col = box.column()
 	col.prop(self,"auto_show_tips")
-	col = box.column()
+	col = box.column(align=True)
 	col.enabled = self.auto_show_tips
 	col.prop(self,"auto_show_frequency",text="Frequency (days)")
 	rw = col.row(align=True)
-	subcol = rw.column(align=True)
+	rw.scale_y = 1.8
+	# subcol = rw.column(align=True)
 	if conf.async_progress == True:
-		subcol.enabled = False
-		subcol.operator("dailytips.get_tips",text="Grabbing tips...")
+		rw.enabled = False
+		rw.operator("dailytips.get_tips",text="Grabbing tips...")
 	elif conf.async_progress == None:
-		subcol.operator("dailytips.get_tips",text="Get tips")
+		rw.operator("dailytips.get_tips",text="Get tips")
 	else:
-		rsubcol.operator("dailytips.show_tip_error",text="Error occured")
-	subcol = rw.column(align=True)
-	subcol.operator("dailytips.clear_cache",text="Clear tip cache")
+		rw.operator("dailytips.show_tip_error",text="Error occured")
+	#subcol = rw.column(align=True)
+	rw = col.row(align=True)
+	rw.operator("dailytips.clear_cache",text="Clear tip cache")
+	rw = col.row(align=True)
+	rw.label("Last check: "+conf.latest())
+	rw.scale_y = 0.8
 
 	# updater draw function
 	topcol = split.column()
@@ -257,32 +261,19 @@ def bdt_draw_preferences(self, context):
 	
 
 	box = tipCol.box()
-	box.prop(self,"tips_internaldb","Enable Blendernation tips feed")
-	if self.tips_internaldb==True:
+	box.prop(self,"tips_database","Enable Daily Tip Database feed")
+	if self.tips_database==True:
 		# tip should come from:
 		# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
 		tip = {"title":"TEST",
-				"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
+				"description":"This is a location where the tip description is provided",
 				"url":"http://theduckcow.com",
 				"img_id":None,
 				"date":"(No date provided)",
-				"website":"http://blendernation.com"
+				"website":"http://theduckcow.com/dev/blender/"
 				}
-		draw_tip(box,tip,style=0,wrap=wrap)
-
-	box = tipCol.box()
-	box.prop(self,"tips_blendernation","Enable Blendernation tips feed")
-	if self.tips_blendernation==True:
-		# tip should come from:
-		# tip = conf.jsn["subscribed_check_cache"]["blendernation"][-1]
-		tip = {"title":"TEST",
-				"description":"THIS IS A DESCRIPTION of what to place in a thing for a tip that is daily even though this is a PERSISTENT non-daily one you know what I mean? it's all the time all the palce.",
-				"url":"http://theduckcow.com",
-				"img_id":None,
-				"date":"(No date provided)",
-				"website":"http://blendernation.com"
-				}
-		draw_tip(box,tip,style=0,wrap=wrap)
+		#draw_tip(box,tip,style=0,wrap=wrap)
+		box.label("Feature not yet available",icon="ERROR")
 	
 	box = tipCol.box()
 	box.prop(self,"tips_yanal_sosak","Enable Yanal Sosak's daily video tips")
@@ -291,6 +282,9 @@ def bdt_draw_preferences(self, context):
 		if "yanal_sosak" in conf.jsn["subscribed_check_cache"]:
 			tip = conf.jsn["subscribed_check_cache"]["yanal_sosak"]
 			draw_tip(box,tip,style=0,wrap=wrap)
+		else:
+			box.label("No tips loaded from Yanal Sosak,")
+			box.label("try pressing get tips above.")
 
 
 def bdt_helptip_draw_append(self, context):
@@ -358,29 +352,17 @@ class BDT_preferences(bpy.types.AddonPreferences):
 	
 	# tip subscription sources
 
-	tips_internaldb = bpy.props.BoolProperty(
-		name = "Daily Tips Database (internal)",
-		description = "Get the latest daily tip generated by the community",
-		default = False,
-		)
-
-	tips_blendernation = bpy.props.BoolProperty(
-		name = "Blendernation Tutorial",
-		description = "Get the latest tutorial posted on Blender Nation",
-		default = False,
-		)
-
-	tips_yanal_sosak = bpy.props.BoolProperty(
-		name = "Yanal Sosak Daily Tips",
-		description = "Received daily tips from Yanal Sosak",
-		default = True,
-		)
-
 	tips_database = bpy.props.BoolProperty(
 		name = "Daily Tips Database",
-		description = "Community tips entered into a community database",
+		description = "Get the latest daily tip generated by the community",
 		default = True,
 		)
+	tips_yanal_sosak = bpy.props.BoolProperty(
+		name = "Yanal Sosak Daily Tips",
+		description = "Daily tip videos from Yanal Sosak",
+		default = True,
+		)
+
 
 	# addon updater preferences
 
@@ -444,6 +426,8 @@ def register():
 	bpy.types.INFO_MT_help.append(bdt_helptip_draw_append)
 
 	# for auto-checking purposes only
+	# verify: only runs when epxlicitly pressing check-enabled,
+	# does not run with just by opening
 	if tip_autocheck_handler not in bpy.app.handlers.scene_update_post:
 		bpy.app.handlers.scene_update_post.append(tip_autocheck_handler)
 	
